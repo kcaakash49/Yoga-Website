@@ -14,10 +14,13 @@ mongoose
   });
 
 const userSchema = new mongoose.Schema({
-  username: String,
-  password: String,
-  firstName: String,
-  lastName: String,
+  name: String,
+  email: String,
+  gender: String,
+  address: String,
+  phone: String,
+  photoURL: String,
+  role:String,
   purchasedClasses: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Classes'
@@ -49,8 +52,9 @@ const classSchema = new mongoose.Schema({
   }
 });
 const cartSchema = new mongoose.Schema({
-  title: String,
-  price: Number
+  name: String,
+  classId: String,
+  instructorEmail: String
 })
 
 
