@@ -1,11 +1,8 @@
 const mongoose = require("mongoose");
 require("dotenv").config();
 
-
 mongoose
-  .connect(
-    process.env.DATABASE_URL
-  )
+  .connect(process.env.DATABASE_URL)
   .then(() => {
     console.log("Successfully connected to DB");
   })
@@ -20,19 +17,11 @@ const userSchema = new mongoose.Schema({
   address: String,
   phone: String,
   photoURL: String,
-  role:String,
-  purchasedClasses: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Classes'
-  }],
-  cartItems: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Cart"
-  }],
+  role: String,
   createdAt: {
     type: Date,
-    default: Date.now
-  }
+    default: Date.now,
+  },
 });
 
 const classSchema = new mongoose.Schema({
@@ -45,21 +34,55 @@ const classSchema = new mongoose.Schema({
   instructorEmail: { type: String, required: true },
   totalEnrolled: { type: Number, required: true },
   reason: { type: String, required: false },
-  status:{type:String, required:true},
+  status: { type: String, required: true },
   createdAt: {
+    type: Date,
+    default: Date.now,
+  },
+});
+const cartItemSchema = new mongoose.Schema({
+  user: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true,
+    unique:true
+  },
+  class: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Classes',
+      required: true
+    }
+  ],
+  addedAt: {
     type: Date,
     default: Date.now
   }
 });
-const cartSchema = new mongoose.Schema({
-  name: String,
-  classId: String,
-  instructorEmail: String
-})
 
+
+const purchasedClassSchema = new mongoose.Schema({
+  user: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
+  class: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Classes',
+      required: true
+    }
+  ],
+  purchasedAt: {
+    type: Date,
+    default: Date.now
+  }
+});
 
 const Users = mongoose.model("users", userSchema);
-const Classes = mongoose.model("classes", classSchema)
-const Cart = mongoose.model("cart", cartSchema)
+const Classes = mongoose.model("classes", classSchema);
+const Cart = mongoose.model("cart", cartItemSchema);
+const PurchasedClass = mongoose.model("purchase", purchasedClassSchema)
 
-module.exports = { Users, Classes, Cart };
+module.exports = { Users, Classes, Cart, PurchasedClass };
