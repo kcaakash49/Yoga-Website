@@ -1,6 +1,7 @@
 
 const { Router } = require('express');
 const { Cart, Users, Classes, PurchasedClass } = require('../../db');
+const { default: mongoose } = require('mongoose');
 
 const router = Router();
 
@@ -44,25 +45,42 @@ router.post("/cart", async (req, res) => {
 router.post("/purchased", async(req,res) => {
     const userId = req.body.userId;
     const classId = req.body.classId;
+    const session = await mongoose.startSession();
     try{
-        const userPurchase = await PurchasedClass.findOne({user: userId});
+        session.startTransaction();
+        const userPurchase = await PurchasedClass.findOne({user: userId}).session(session);
         const classAlreadyPurchased = userPurchase && userPurchase.class.includes(classId);
         if(classAlreadyPurchased){
             return res.json({
                 message: "Class already purchased"
             })
         }
+        const classInfo = await Classes.findById(classId).session(session);
+        if (!classInfo) {
+            await session.abortTransaction();
+            session.endSession();
+            return res.status(404).json({ message: "Class not found" });
+        }
+
+        if (classInfo.availableSeats <= 0) {
+            await session.abortTransaction();
+            session.endSession();
+            return res.status(400).json({ message: "No available seats" });
+        }
         const filter = { user: userId };
         const update = { $addToSet: { class: classId } };
         const options = { upsert: true, new: true };
-        const updatedCart = await PurchasedClass.findOneAndUpdate(filter, update, options);
+        const updatedCart = await PurchasedClass.findOneAndUpdate(filter, update, options).session(session);
         const classUpdate = await Classes.findByIdAndUpdate(classId, {
             $inc: { totalEnrolled: 1, availableSeats: -1 }
-        }, { new: true });
+        }, { new: true }).session(session);
     
-    
+        await session.commitTransaction();
+        session.endSession();
         res.status(200).json({updatedCart, classUpdate});
     }catch(err){
+        await session.abortTransaction();
+        session.endSession();
         res.status(500).json({
             message: "Internal Server Error"
         })
