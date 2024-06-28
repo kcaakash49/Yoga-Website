@@ -44,15 +44,30 @@ router.post("/cart", async (req, res) => {
 router.post("/purchased", async(req,res) => {
     const userId = req.body.userId;
     const classId = req.body.classId;
+    try{
+        const userPurchase = await PurchasedClass.findOne({user: userId});
+        const classAlreadyPurchased = userPurchase && userPurchase.class.includes(classId);
+        if(classAlreadyPurchased){
+            return res.json({
+                message: "Class already purchased"
+            })
+        }
+        const filter = { user: userId };
+        const update = { $addToSet: { class: classId } };
+        const options = { upsert: true, new: true };
+        const updatedCart = await PurchasedClass.findOneAndUpdate(filter, update, options);
+        const classUpdate = await Classes.findByIdAndUpdate(classId, {
+            $inc: { totalEnrolled: 1, availableSeats: -1 }
+        }, { new: true });
+    
+    
+        res.status(200).json({updatedCart, classUpdate});
+    }catch(err){
+        res.status(500).json({
+            message: "Internal Server Error"
+        })
+    }
 
-    const filter = { user: userId };
-    const update = { $addToSet: { class: classId } };
-    const options = { upsert: true, new: true };
-
-
-    const updatedCart = await PurchasedClass.findOneAndUpdate(filter, update, options);
-
-    res.status(200).json(updatedCart);
 })
 
 router.get("/cart/:id", async (req, res) => {
